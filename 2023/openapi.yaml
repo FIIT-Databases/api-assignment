@@ -1,4 +1,6 @@
 openapi: 3.0.0
+x-stoplight:
+  id: e7cb9e7743fde
 info:
   title: DBS Library API
   version: '1.0'
@@ -1045,7 +1047,7 @@ components:
         - personal_identificator
         - created_at
         - updated_at
-      description: 'This JSON object represents the complete detail of a user in the library system. It includes the user''s ID, name, surname, email, birth date, and personal identifier. It also contains a list of the user''s active reservations and rentals, ordered by the date they were created.'
+      description: 'This JSON object represents the complete detail of a user in the library system. It includes the user ID, name, surname, email, birth date, and personal identifier. It also contains a list of the active reservations and rentals, ordered by the date they were created.'
     Card:
       title: Card
       type: object
