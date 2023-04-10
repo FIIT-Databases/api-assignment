@@ -1,0 +1,1162 @@
+openapi: 3.0.0
+info:
+  title: DBS Library API
+  version: '1.0'
+  description: 'This API provides endpoints for managing users, RFID cards, books, book copies, and book rentals with reservations.'
+  contact:
+    name: Jakub Dubec
+    email: jakub.dubec@stuba.sk
+servers:
+  - url: 'http://localhost:3000'
+tags:
+  - name: Users
+  - name: Cards
+  - name: Publications & Instances
+  - name: Enumerations
+  - name: Rentals & Reservations
+paths:
+  '/users/{userId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: userId
+        in: path
+        required: true
+        description: Id of an existing user.
+    get:
+      summary: Get User Info by User ID
+      tags:
+        - Users
+      responses:
+        '200':
+          description: User Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              examples: {}
+        '404':
+          description: User Not Found
+      operationId: get-users-userId
+      description: Retrieve the information of the user with the matching user ID.
+      parameters: []
+    patch:
+      summary: Update User Information
+      operationId: patch-users-userId
+      responses:
+        '200':
+          description: User Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              examples: {}
+        '404':
+          description: User Not Found
+        '409':
+          description: Email Already Taken
+      description: Update the information of an existing user.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  description: 'If a new email is given, the user''s email verified property will be set to false.'
+                dateOfBirth:
+                  type: string
+            examples: {}
+        description: Patch user properties to update.
+      tags:
+        - Users
+  /user:
+    post:
+      summary: Create new user
+      operationId: post-user
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Missing Required Information
+        '409':
+          description: Email Already Taken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                surname:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                birth_date:
+                  type: string
+                  format: date
+                personal_identificator:
+                  type: string
+              required:
+                - name
+                - surname
+                - email
+                - birth_date
+                - personal_identificator
+            examples: {}
+        description: Post the necessary fields for the API to create a new user.
+      description: Create a new user.
+      tags:
+        - Users
+  /cards:
+    post:
+      summary: Create RFID card
+      operationId: post-cards
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+      tags:
+        - Cards
+      description: |-
+        This `POST` operation allows you to create a new RFID card for a user. The request should contain a JSON object describing the RFID card as follows:
+
+        - `id` (optional): A unique identifier for the RFID card represented as a string. If not provided, a new UUID will be generated.
+        - `user_id`: A unique identifier for the user associated with the RFID card represented as a string.
+        - `magstripe`: A string representing the magstripe data stored on the RFID card.
+        - `status`: A string representing the status of the RFID card. The value can be one of "active", "inactive", or "expired".
+
+        The response will contain a JSON object describing the newly created RFID card, including its unique `id`, `created_at` timestamp, and `updated_at` timestamp.
+
+        If the operation is successful, the response status code will be `201 Created`. If the operation fails, an appropriate error status code will be returned.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                user_id:
+                  type: string
+                  format: uuid
+                magstripe:
+                  type: string
+                status:
+                  type: string
+                  enum:
+                    - active
+                    - inactive
+                    - expired
+              required:
+                - user_id
+                - magstripe
+                - status
+            examples:
+              Example 1:
+                value:
+                  id: 497f6eca-6276-4993-bfeb-53cbbbba6f08
+                  user_id: a169451c-8525-4352-b8ca-070dd449a1a5
+                  magstripe: string
+                  status: active
+  '/cards/{cardId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: cardId
+        in: path
+        required: true
+        description: Identifier of a RFID card
+    get:
+      summary: RFID card detail
+      tags:
+        - Cards
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          description: Not Found
+      operationId: get-cards-cardId
+      description: |
+        This `GET` operation allows you to retrieve details about a specific RFID card by ID. 
+
+        The response will contain a JSON object describing the RFID card, including its unique `id`, `user_id`, `magstripe`, `status`, `created_at` timestamp, and `updated_at` timestamp.
+
+        If the operation is successful, the response status code will be `200 OK`. If the operation fails (e.g. if the specified RFID card ID does not exist), an appropriate error status code will be returned.
+    patch:
+      summary: Update RFID card
+      operationId: patch-cards-cardId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - active
+                    - inactive
+                    - expired
+                user_id:
+                  type: string
+                  format: uuid
+        description: |-
+          This JSON payload is used to update the status and user owner of an RFID card. It contains two properties:
+
+          - `status`: A string representing the new status of the RFID card. The value can be one of "active", "inactive", or "expired".
+          - `user_id`: A unique identifier for the user associated with the RFID card represented as a string.
+
+          This payload is used with the `PATCH` method to update the status and user owner of an existing RFID card. The response will contain a JSON object describing the updated RFID card, including its unique `id`, `created_at` timestamp, and `updated_at` timestamp.
+
+          If the operation is successful, the response status code will be `200 OK`. If the operation fails, an appropriate error status code will be returned.
+      tags:
+        - Cards
+    delete:
+      summary: Card delete
+      operationId: delete-cards-cardId
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+      tags:
+        - Cards
+      description: |-
+        This `DELETE` operation allows you to delete a specific RFID card by ID. 
+
+        If the operation is successful, the response status code will be `204 No Content` with an empty response body. If the operation fails (e.g. if the specified RFID card ID does not exist), an appropriate error status code will be returned.
+  /publications:
+    post:
+      summary: Create a new publication
+      operationId: post-publications
+      responses:
+        '200':
+          description: OK
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                authors:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      surname:
+                        type: string
+                    required:
+                      - name
+                      - surname
+                categories:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+              required:
+                - title
+                - authors
+                - categories
+      description: |
+        This `POST` operation allows you to create a new publication. The request should contain a JSON object describing the publication as follows:
+
+        - `id` (optional): A unique identifier for the book represented as a string. If not provided, a new UUID will be generated.
+        - `title`: A string representing the title of the book.
+        - `authors`: A list of objects representing the authors of the book. Each author objectcontains two properties: `name` (string) and `surname` (string). The specified author names must match an existing author entity in the database, otherwise the request will fail.
+        - `categories`: A list of strings representing the categories that the book belongs to.The specified category names must match an existing category entity in the database, otherwise the request will fail.
+
+        The response will contain a JSON object describing the newly created book, including its unique `id`, `title`, `authors`, `categories`, `created_at` timestamp, and `updated_at` timestamp.
+
+        If the operation is successful, the response status code will be `201 Created`. If the operation fails (e.g. if the specified authors or categories do not exist in the database), an appropriate error status code will be returned.
+      tags:
+        - Publications & Instances
+  '/publications/{publicationId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: publicationId
+        in: path
+        required: true
+        description: Publication UUID
+    get:
+      summary: Publication detail
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Publication'
+        '404':
+          description: Not Found
+      operationId: get-publications-publicationId
+      tags:
+        - Publications & Instances
+    patch:
+      summary: Update publication detail
+      operationId: patch-publications-publicationId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Publication'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                authors:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      surname:
+                        type: string
+                categories:
+                  type: array
+                  items:
+                    type: string
+            examples:
+              Example 1:
+                value:
+                  title: The Call of Cthulhu
+                  authors:
+                    - name: H.P.
+                      surname: Lovecraft
+                  categories:
+                    - Horror
+                    - Fiction
+      description: This `PATCH` operation allows you to update the details of a specific publication by ID.
+      tags:
+        - Publications & Instances
+    delete:
+      summary: Delete publication
+      operationId: delete-publications-publicationId
+      responses:
+        '204':
+          description: No Content
+      description: Delete publication with all instances and other referencies.
+      tags:
+        - Publications & Instances
+  /authors:
+    post:
+      summary: Create author
+      operationId: post-authors
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '400':
+          description: Bad Request
+        '409':
+          description: Conflict
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                surname:
+                  type: string
+              required:
+                - name
+                - surname
+            examples:
+              Example 1:
+                value:
+                  id: 7f3c3d0a-8b07-45b9-9d18-4074647d37c8
+                  name: Ernest
+                  surname: Hemingway
+      description: |
+        This `POST` operation allows you to create a new author.
+
+        The request should contain a JSON object describing the author, including any of the following properties:
+
+        - `id` (optional): A unique identifier for the author represented as a string. If not provided, a new UUID will be generated.
+        - `name`: A string representing the first name of the author.
+        - `surname`: A string representing the last name of the author.
+
+        If the operation is successful, the response status code will be `201 Created` with a JSON object describing the newly created author, including its unique `id`, `name`, `surname`, `created_at` timestamp, and `updated_at` timestamp. If the operation fails (e.g. if the specified author already exists), an appropriate error status code will be returned.
+      tags:
+        - Enumerations
+  '/authors/{authorId}':
+    parameters:
+      - schema:
+          type: string
+        name: authorId
+        in: path
+        required: true
+        description: Author UUID
+    get:
+      summary: Author detail
+      tags:
+        - Enumerations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '404':
+          description: Not Found
+      operationId: get-authors-authorId
+      description: This `GET` operation allows you to retrieve the details of a specific author by ID.
+    patch:
+      summary: ''
+      operationId: patch-authors-authorId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+              examples: {}
+      description: |-
+        This `PATCH` operation allows you to update the details of a specific author by ID.
+
+        The request should contain a JSON object describing the updates to be made to the author, including any of the following properties:
+
+        - `name` (optional): A string representing the first name of the author.
+        - `surname` (optional): A string representing the last name of the author.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                surname:
+                  type: string
+      tags:
+        - Enumerations
+    delete:
+      summary: ''
+      operationId: delete-authors-authorId
+      responses:
+        '204':
+          description: No Content
+      description: This `DELETE` operation allows you to delete a specific author by ID.
+      tags:
+        - Enumerations
+  /categories:
+    post:
+      summary: Create category
+      operationId: post-categories
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+              examples:
+                Example 1:
+                  value:
+                    id: 6e26d6e7-6c2e-4177-86f1-39274c524399
+                    name: Thriller
+                    created_at: '2023-04-12T10:00:00Z'
+                    updated_at: '2023-04-12T10:00:00Z'
+        '400':
+          description: Bad Request
+        '409':
+          description: Conflict
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+            examples:
+              Example 1:
+                value:
+                  id: 6e26d6e7-6c2e-4177-86f1-39274c524399
+                  name: Thriller
+      description: |
+        This `POST` operation allows you to create a new category.
+
+        The request should contain a JSON object describing the category, including the following properties:
+
+        - `id` (optional): A unique identifier for the category represented as a string. If not provided, a new UUID will be generated.
+        - `name`: A string representing the name of the category.
+
+        If the operation is successful, the response status code will be `201 Created` with a JSON object describing the newly created category, including its unique `id`, `name`, `created_at` timestamp, and `updated_at` timestamp. If the operation fails (e.g. if the specified category already exists), an appropriate error status code will be returned.
+      tags:
+        - Enumerations
+  '/categories/{categoryId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: categoryId
+        in: path
+        required: true
+        description: Category UUID
+    get:
+      summary: Category detail
+      tags:
+        - Enumerations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          description: Not Found
+      operationId: get-categories-categoryId
+      description: This `GET` operation allows you to retrieve the details of a specific category by ID.
+    patch:
+      summary: Update category
+      operationId: patch-categories-categoryId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+            examples:
+              Example 1:
+                value:
+                  name: Thriller
+      description: |
+        This `PATCH` operation allows you to update the details of a specific category by ID.
+
+        The request should contain a JSON object describing the updates to be made to the category, including the following property:
+
+        - `name` (optional): A string representing the name of the category.
+
+        If the operation fails (e.g. if the specified category ID does not exist), an appropriate error status code will be returned.
+      tags:
+        - Enumerations
+    delete:
+      summary: Delete category
+      operationId: delete-categories-categoryId
+      responses:
+        '204':
+          description: No Content
+      description: This `DELETE` operation allows you to delete a specific category by ID.
+      tags:
+        - Enumerations
+  /instances:
+    post:
+      summary: Create a publication instance
+      operationId: post-instances
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instance'
+        '400':
+          description: Bad Request
+      tags:
+        - Publications & Instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                type:
+                  type: string
+                  enum:
+                    - physical
+                    - ebook
+                    - audiobook
+                publisher:
+                  type: string
+                year:
+                  type: integer
+                status:
+                  type: string
+                  enum:
+                    - available
+                    - reserved
+                  default: available
+                publication_id:
+                  type: string
+                  format: uuid
+              required:
+                - type
+                - publisher
+                - year
+                - status
+                - publication_id
+            examples:
+              Example 1:
+                value:
+                  id: 07d6ee43-d6d2-46b8-8b44-1d3a813a98ee
+                  type: physical
+                  publisher: Penguin Books
+                  year: 1949
+                  status: available
+                  publication_id: d1ca6e2a-9d7b-437d-84e7-986f0bb931f7
+      description: |
+        This `POST` operation allows you to create a new publication instance.
+
+        The request should contain a JSON object describing the publication instance, including the following properties:
+
+        - `id` (optional): A unique identifier for the publication instance represented as a string. If not provided, a new UUID will be generated.
+        - `type`: A string representing the type of the publication instance. Valid values include "physical", "ebook", and "audiobook".
+        - `publisher`: A string representing the name of the publisher of the publication instance.
+        - `year`: An integer representing the year of publication of the publication instance.
+        - `status` (optional): A string representing the current status of the publication instance. Valid values include "available" and "reserved". If not provided, the default status is "available".
+        - `publication_id`: A string representing the UUID of the publication that the instance belongs to.
+
+        If the operation is successful, the response status code will be `201 Created` with a JSON object describing the newly created publication instance, including its unique `id`, `type`, `publisher`, `year`, `status`, `publication_id`, `created_at` timestamp, and `updated_at` timestamp. If the operation fails (e.g. if the specified publication ID does not exist), an appropriate error status code will be returned.
+  '/instances/{instanceId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: instanceId
+        in: path
+        required: true
+        description: Instance UUID
+    get:
+      summary: Instance detail
+      tags:
+        - Publications & Instances
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instance'
+        '404':
+          description: Not Found
+      operationId: get-instances-instanceId
+      description: This operation retrieves the details of a single publication instance by its ID.
+    patch:
+      summary: Update instance detail
+      operationId: patch-instances-instanceId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instance'
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+      tags:
+        - Publications & Instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - physical
+                    - ebook
+                    - audiobook
+                publisher:
+                  type: string
+                year:
+                  type: integer
+                status:
+                  type: string
+                  enum:
+                    - available
+                    - reserved
+                publication_id:
+                  type: string
+                  format: uuid
+        description: ''
+      description: |
+        This `PATCH` operation allows you to update the details of a single publication instance by its ID.
+
+        The request should contain a JSON object describing the changes to be made to the publication instance, including any of the following properties:
+
+        - `type`: A string representing the type of the publication instance. Valid values include "physical", "ebook", and "audiobook".
+        - `publisher`: A string representing the name of the publisher of the publication instance.
+        - `year`: An integer representing the year of publication of the publication instance.
+        - `status`: A string representing the current status of the publication instance. Valid values include "available" and "reserved".
+
+        If the operation is successful, the response status code will be `200 OK` with a JSON object describing the updated publication instance, including its unique `id`, `type`, `publisher`, `year`, `status`, `publication_id`, `created_at` timestamp, and `updated_at` timestamp. If the operation fails (e.g. if the specified publication instance ID does not exist), an appropriate error status code will be returned.
+    delete:
+      summary: Delete instance
+      operationId: delete-instances-instanceId
+      responses:
+        '204':
+          description: No Content
+      description: This operation deletes a single publication instance by its ID.
+      tags:
+        - Publications & Instances
+  /rentals:
+    post:
+      summary: Create a new rental
+      operationId: post-rentals
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rental'
+        '400':
+          description: Bad Request
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                publication_id:
+                  type: string
+                  format: uuid
+                duration:
+                  type: integer
+                  maximum: 14
+                id:
+                  type: string
+                  format: uuid
+              required:
+                - user_id
+                - publication_id
+                - duration
+      description: |
+        This `POST` operation allows a user to create a new rental for a publication.
+
+        The request should contain a JSON object describing the rental, including the following properties:
+
+        - `user_id`: A string representing the UUID of the user creating the rental.
+        - `publication_id`: A string representing the UUID of the publication being rented.
+        - `duration`: An integer representing the duration of the rental in days. The maximumduration is 14 days.
+
+        If the operation is successful and a publication instance is available for rental, the response status code will be `201 Created` with a JSON object describing the newly created rental, including its unique `id`, `user_id`, `publication_instance_id`, `duration`, `start_date` timestamp, and `end_date` timestamp. If no publication instance is available for rental, an appropriate error status code will be returned.
+
+        The rental will be automatically assigned an available publication instance with the same publication ID as the instance specified in the request. If there are no available instances, the rental will fail.
+
+        The rental duration must be a positive integer value not exceeding 14. Upon successful creation of the rental, the `start_date` timestamp will be set to the current date and time, and the `end_date` timestamp will be set to the calculated date and time when the rental is due to end.
+
+        Optionally, the request can also include an `id` property representing a UUID for the rental, if a specific ID is desired.
+      tags:
+        - Rentals & Reservations
+  '/rentals/{rentalId}':
+    parameters:
+      - schema:
+          type: string
+        name: rentalId
+        in: path
+        required: true
+        description: Rental UUID
+    get:
+      summary: Rental detail
+      tags:
+        - Rentals & Reservations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rental'
+        '404':
+          description: Not Found
+      operationId: get-rentals-rentalId
+    patch:
+      summary: Extend rental time
+      operationId: patch-rentals-rentalId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rental'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                duration:
+                  type: integer
+                  maximum: 14
+              required:
+                - duration
+            examples:
+              Example 1:
+                value:
+                  duration: 14
+        description: ''
+      description: |
+        This `PATCH` operation allows a user to extend the reservation time for a rental.
+
+        The request should contain a JSON object describing the changes to be made to the rental, including the following property:
+
+        - `duration`: An integer representing the new duration of the rental in days. The maximum duration is 14 days.
+
+        If the operation is successful and the rental is currently "active", the response status code will be `200 OK` with a JSON object describing the updated rental, including its unique `id`, `user_id`, `publication_instance_id`, `duration`, `start_date` timestamp, and updated `end_date` timestamp. If the rental is not "active", an appropriate error status code will be returned.
+
+        The rental duration must be a positive integer value not exceeding 14. Upon successful update of the rental, the `end_date` timestamp will be recalculated based on the new duration.
+
+        Optionally, the request can also include an `id` property representing a UUID for the rental, if a specific ID is desired.
+components:
+  schemas:
+    User:
+      title: User
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        surname:
+          type: string
+        email:
+          type: string
+          format: email
+        birth_date:
+          type: string
+          format: date
+        personal_identificator:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - surname
+        - email
+        - birth_date
+        - personal_identificator
+        - created_at
+        - updated_at
+    Card:
+      title: Card
+      type: object
+      description: |-
+        This JSON object describes a user's RFID card that is used to access the library. It contains six properties:
+
+        - `id`: A unique identifier for the RFID card represented as a string.
+        - `user_id`: A unique identifier for the user associated with the RFID card represented as a string.
+        - `magstripe`: A string representing the magstripe data stored on the RFID card.
+        - `status`: A string representing the status of the RFID card. The value can be one of "active", "inactive", or "expired".
+        - `created_at`: A timestamp indicating when the RFID card was created represented in the ISO 8601 format.
+        - `updated_at`: A timestamp indicating when the RFID card was last updated represented in the ISO 8601 format.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: f3c02f38-e8bd-4ee3-b82b-168ef4a6ef3b
+        user_id:
+          type: string
+          format: uuid
+          example: 3d2737f5-b671-43a7-b8fd-4039a5ad2e6b
+        magstripe:
+          type: string
+          minLength: 20
+          maxLength: 20
+        status:
+          type: string
+          enum:
+            - active
+            - expired
+            - inactive
+        created_at:
+          type: string
+          format: date-time
+          example: '2019-08-24T14:15:22Z'
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - magstripe
+    Publication:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        authors:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              surname:
+                type: string
+            required:
+              - name
+              - surname
+        categories:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - authors
+        - categories
+        - created_at
+        - updated_at
+      description: |-
+        - `id`: A unique identifier for the book represented as a string.
+        - `title`: A string representing the title of the book.
+        - `authors`: A list of objects representing the authors of the book. Each author objectcontains two properties: `name` (string) and `surname` (string).
+        - `categories`: A list of strings representing the categories that the book belongs to.
+        - `created_at`: A timestamp representing the date and time when the book was created, in ISO 8601 format.
+        - `updated_at`: A timestamp representing the date and time when the book was last updated, in ISO 8601 format.
+    Author:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        surname:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - surname
+        - created_at
+        - updated_at
+      title: Author
+      description: |
+        - `id`: A unique identifier for the author represented as a string.
+        - `name`: A string representing the first name of the author.
+        - `surname`: A string representing the last name of the author.
+        - `created_at`: A timestamp representing the date and time when the author was created, in ISO 8601 format.
+        - `updated_at`: A timestamp representing the date and time when the author was last updated, in ISO 8601 format.
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: |
+        - `id`: A unique identifier for the category represented as a string.
+        - `name`: A string representing the name of the category.
+        - `created_at`: A timestamp representing the date and time when the category was created, in ISO 8601 format.
+        - `updated_at`: A timestamp representing the date and time when the category was lastupdated, in ISO 8601 format.
+    Instance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum:
+            - physical
+            - ebook
+            - audiobook
+        publisher:
+          type: string
+        year:
+          type: integer
+        status:
+          type: string
+          enum:
+            - available
+            - reserved
+        publication_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - publisher
+        - year
+        - status
+        - publication_id
+        - created_at
+        - updated_at
+      description: |
+        - `id`: A unique identifier for the publication instance represented as a string.
+        - `type`: A string representing the type of the publication instance. Valid values include "physical", "ebook", and "audiobook".
+        - `publisher`: A string representing the name of the publisher of the publication instance.
+        - `year`: An integer representing the year of publication of the publication instance.
+        - `status` (optional): A string representing the current status of the publication instance. Valid values include "available" and "reserved". If not provided, the default status is "available".
+        - `publication_id`: A string representing the UUID of the publication that the instance belongs to.
+        - `created_at`: A string representing the timestamp of when the publication instance was created in ISO 8601 format.
+        - `updated_at`: A string representing the timestamp of when the publication instance was last updated in ISO 8601 format.
+
+        The `type` property should be one of the following strings:
+
+        - `physical`: The publication instance is a physical book.
+        - `ebook`: The publication instance is an electronic book.
+        - `audiobook`: The publication instance is an audio book.
+
+        The `status` property should be one of the following strings:
+
+        - `available`: The publication instance is available for rental.
+        - `reserved`: The publication instance is currently reserved by a user.
+    Rental:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        publication_instance_id:
+          type: string
+          format: uuid
+        duration:
+          type: integer
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - active
+            - returned
+            - overdue
+      description: |
+        - `id`: A string representing the unique UUID of the newly created rental.
+        - `user_id`: A string representing the UUID of the user who created the rental.
+        - `publication_instance_id`: A string representing the UUID of the publication instanceassigned to the rental.
+        - `duration`: An integer representing the duration of the rental in days.
+        - `start_date`: A string representing the date and time when the rental begins, in ISO 8601 format (e.g. "2023-04-11T12:00:00Z").
+        - `end_date`: A string representing the date and time when the rental is due to end, inISO 8601 format (e.g. "2023-04-18T12:00:00Z").
+        - `status`: A string representing the current status of the rental. Valid values include "active", "overdue", and "returned".
+
+        The `id`, `user_id`, `publication_instance_id`, and `duration` properties are as specified in the original request. The `start_date` property is automatically set to the current date and time when the rental is created, and the `end_date` property is calculated based on the duration and the current date and time.
+
+        The `status` property indicates the current state of the rental. The rental is initially "active" when created, and may transition to "overdue" if it is not returned by the due date, or "returned" if it is successfully returned.
