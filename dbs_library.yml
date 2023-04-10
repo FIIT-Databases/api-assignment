@@ -915,6 +915,8 @@ paths:
         The rental duration must be a positive integer value not exceeding 14. Upon successful update of the rental, the `end_date` timestamp will be recalculated based on the new duration.
 
         Optionally, the request can also include an `id` property representing a UUID for the rental, if a specific ID is desired.
+      tags:
+        - Rentals & Reservations
   /reservations:
     post:
       summary: Create a reservation
