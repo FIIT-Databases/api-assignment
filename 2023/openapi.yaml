@@ -37,7 +37,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-              examples: {}
+              examples:
+                Example 1:
+                  value:
+                    id: 497f6eca-6276-4993-bfeb-53cbbbba6f08
+                    name: string
+                    surname: string
+                    email: user@example.com
+                    birth_date: '2019-08-24'
+                    personal_identificator: string
+                    reservations:
+                      - id: 497f6eca-6276-4993-bfeb-53cbbbba6f08
+                        user_id: a169451c-8525-4352-b8ca-070dd449a1a5
+                        publication_id: c3452ed9-df18-461f-a6fe-5036c6b93bf2
+                        created_at: '2019-08-24T14:15:22Z'
+                    rentals:
+                      - id: 497f6eca-6276-4993-bfeb-53cbbbba6f08
+                        user_id: a169451c-8525-4352-b8ca-070dd449a1a5
+                        publication_instance_id: d53415a1-1c04-429f-a852-288aba36578a
+                        duration: 0
+                        start_date: '2019-08-24T14:15:22Z'
+                        end_date: '2019-08-24T14:15:22Z'
+                        status: active
+                    created_at: '2019-08-24T14:15:22Z'
+                    updated_at: '2019-08-24T14:15:22Z'
         '404':
           description: User Not Found
       operationId: get-users-userId
@@ -86,7 +109,14 @@ paths:
                   format: date
                 personal_identificator:
                   type: string
-            examples: {}
+            examples:
+              Example 1:
+                value:
+                  name: string
+                  surname: string
+                  email: user@example.com
+                  birth_date: '2019-08-24'
+                  personal_identificator: string
         description: Patch user properties to update.
       tags:
         - Users
