@@ -52,6 +52,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
               examples: {}
+        '400':
+          description: Bad Request
         '404':
           description: User Not Found
         '409':
@@ -62,15 +64,25 @@ paths:
           application/json:
             schema:
               type: object
+              x-examples:
+                Example 1:
+                  name: string
+                  surname: string
+                  email: user@example.com
+                  birth_date: '2019-08-24'
+                  personal_identificator: string
               properties:
-                firstName:
+                name:
                   type: string
-                lastName:
+                surname:
                   type: string
                 email:
                   type: string
-                  description: 'If a new email is given, the user''s email verified property will be set to false.'
-                dateOfBirth:
+                  format: email
+                birth_date:
+                  type: string
+                  format: date
+                personal_identificator:
                   type: string
             examples: {}
         description: Patch user properties to update.
@@ -118,7 +130,15 @@ paths:
                 - email
                 - birth_date
                 - personal_identificator
-            examples: {}
+            examples:
+              Example 1:
+                value:
+                  id: 497f6eca-6276-4993-bfeb-53cbbbba6f08
+                  name: string
+                  surname: string
+                  email: user@example.com
+                  birth_date: '2019-08-24'
+                  personal_identificator: string
         description: Post the necessary fields for the API to create a new user.
       description: Create a new user.
       tags:
@@ -818,6 +838,8 @@ paths:
       description: |
         This `POST` operation allows a user to create a new rental for a publication.
 
+        If the publication instance is currently available, the rental will be created immediately. If not, the rental creation will fail. If there are some reservations for the publication, only first user in the queue is able to create a rental.
+
         The request should contain a JSON object describing the rental, including the following properties:
 
         - `user_id`: A string representing the UUID of the user creating the rental.
@@ -893,6 +915,90 @@ paths:
         The rental duration must be a positive integer value not exceeding 14. Upon successful update of the rental, the `end_date` timestamp will be recalculated based on the new duration.
 
         Optionally, the request can also include an `id` property representing a UUID for the rental, if a specific ID is desired.
+  /reservations:
+    post:
+      summary: Create a reservation
+      operationId: post-reservations
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          description: Bad Request
+      description: |
+        This `POST` operation allows a user to create a new reservation for a publication that is currently unavailable.
+
+        If the publication is not currently available, the user can create a reservation, which will be added to the waiting queue for the publication. When a publication instance becomes available, the first user in the reservation queue will be notified and will have 24 hours to create a rental for the publication instance. If the reservation is not fulfilled within 24 hours, it will be automatically cancelled.
+
+        The request should contain a JSON object describing the new reservation, including the following properties:
+
+        - `user_id`: A string representing the UUID of the user making the reservation.
+        - `publication_id`: A string representing the UUID of the publication being reserved.
+
+        Optionally, the request can also include an `id` property representing a UUID for the reservation, if a specific ID is desired.
+
+        If the operation is successful, the response status code will be `201 Created`, and the response body will contain a JSON object describing the new reservation, including its unique `id`, `user_id`, `publication_id`, and `created_at` timestamp.
+
+        Reservations are used when there are no available publication instances for a given publication, and serve as a queue for users waiting for a copy to become available. Reservations have no expiration date, but will be automatically cancelled when the publication instance becomes available and the reservation is fulfilled.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                Example 1:
+                  id: 497f6eca-6276-4993-bfeb-53cbbbba6f08
+                  user_id: a169451c-8525-4352-b8ca-070dd449a1a5
+                  publication_id: c3452ed9-df18-461f-a6fe-5036c6b93bf2
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                user_id:
+                  type: string
+                  format: uuid
+                publication_id:
+                  type: string
+                  format: uuid
+              required:
+                - user_id
+                - publication_id
+      tags:
+        - Rentals & Reservations
+  '/reservations/{reservationId}':
+    parameters:
+      - schema:
+          type: string
+        name: reservationId
+        in: path
+        required: true
+    get:
+      summary: Reservation detail
+      tags:
+        - Rentals & Reservations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '404':
+          description: Not Found
+      operationId: get-reservations-reservationId
+    delete:
+      summary: Cancel reservation
+      operationId: delete-reservations-reservationId
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+      tags:
+        - Rentals & Reservations
 components:
   schemas:
     User:
@@ -914,6 +1020,14 @@ components:
           format: date
         personal_identificator:
           type: string
+        reservations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reservation'
+        rentals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rental'
         created_at:
           type: string
           format: date-time
@@ -929,6 +1043,7 @@ components:
         - personal_identificator
         - created_at
         - updated_at
+      description: 'This JSON object represents the complete detail of a user in the library system. It includes the user''s ID, name, surname, email, birth date, and personal identifier. It also contains a list of the user''s active reservations and rentals, ordered by the date they were created.'
     Card:
       title: Card
       type: object
@@ -1160,3 +1275,29 @@ components:
         The `id`, `user_id`, `publication_instance_id`, and `duration` properties are as specified in the original request. The `start_date` property is automatically set to the current date and time when the rental is created, and the `end_date` property is calculated based on the duration and the current date and time.
 
         The `status` property indicates the current state of the rental. The rental is initially "active" when created, and may transition to "overdue" if it is not returned by the due date, or "returned" if it is successfully returned.
+    Reservation:
+      type: object
+      x-examples:
+        Example 1:
+          id: 8f02a2c2-6477-4f63-9658-14d39e1f7c1e
+          user_id: 3d2737f5-b671-43a7-b8fd-4039a5ad2e6b
+          publication_id: 0d68a4b5-5a63-4a5d-9575-5ef3a3aa2c5b
+          created_at: '2023-04-15T09:30:00Z'
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        publication_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+      description: |
+        - `id`: A string representing the unique UUID of the new reservation.
+        - `user_id`: A string representing the UUID of the user who created the reservation.
+        - `publication_id`: A string representing the UUID of the publication for which the reservation was created.
+        - `created_at`: A string representing the timestamp when the reservation was created.
