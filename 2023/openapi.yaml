@@ -9,7 +9,7 @@ info:
     name: Jakub Dubec
     email: jakub.dubec@stuba.sk
 servers:
-  - url: 'http://localhost:3000'
+  - url: 'http://localhost:8000'
 tags:
   - name: Users
   - name: Cards
@@ -120,7 +120,7 @@ paths:
         description: Patch user properties to update.
       tags:
         - Users
-  /user:
+  /users:
     post:
       summary: Create new user
       operationId: post-user
